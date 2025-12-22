@@ -1,25 +1,28 @@
 #include "RelaySwitch.h"
 
-RelaySwitch::RelaySwitch() {}
+RelaySwitch::RelaySwitch(int pin1, int pin2, int pin3, int pin4) : pins{pin1, pin2, pin3, pin4}, status{} {}
 
-void RelaySwitch::init(int pin1, int pin2, int pin3, int pin4) {
-  // set all the relays OUTPUT
-  pins[0] = pin1;
-  pins[1] = pin2;
-  pins[2] = pin3;
-  pins[3] = pin4;
+void RelaySwitch::init() {
+  Serial.println("Relay init");
 
   for (int i = 0; i < 4; i++) {
+    Serial.print(i);
+    Serial.print(": ");
+    Serial.print(pins[i]);
+    Serial.print("\n");
     pinMode(pins[i], OUTPUT);
   }
-
+  
+  Serial.println("Zero Relay");
   zeroRelay();
+  Serial.println("Update Relay");
   update();
 }
 
 void RelaySwitch::zeroRelay() {
   for (int i = 0; i < 4; i++) {
-    status[i] = 1;
+    Serial.println(i);
+    status[i] = RELAY_OFF;
   }
 }
 

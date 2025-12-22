@@ -1,24 +1,22 @@
 
-#include <WiFiS3.h>
+#include <WiFi.h>
 #include <WebSocketsServer.h>
 #include <ArduinoJson.h>
-#include <WiFiServer.h>
 
 #include "RelaySwitch.h"
 
 #define DEVICE_NAME "Robo_Crawler_v1.1"
 
-#define RELAY_ON 0
-#define RELAY_OFF 1
 
 //PINS
 
 //Arduino Pin Definitions
-#define RELAY_1 3
-#define RELAY_2 4
-#define RELAY_3 5
-#define RELAY_4 6
-#define PWMDRIVE 10
+#define RELAY_1 16
+#define RELAY_2 17
+#define RELAY_3 18
+#define RELAY_4 19
+
+#define PWMDRIVE 21
 
 #define SPEED_PIN_LEFT    26
 #define SPEED_PIN_RIGHT    25
@@ -36,8 +34,13 @@ JsonDocument doc_send;
 JsonDocument doc_recv;
 String temp_send;
 
-RelaySwitch relay;
+RelaySwitch relay(RELAY_1,RELAY_2,RELAY_3,RELAY_4);
 
+void onWebSocketEvent(uint8_t client_num,
+                      WStype_t type,
+                      uint8_t * payload,
+                      size_t length);
+void sendPulse(int pulseWidthMicros);
 
 
 void setup() 
@@ -53,17 +56,25 @@ void setup()
 
   Serial.begin(115200);
   Serial.println("Starting WiFi in AP mode...");  
-  WiFi.beginAP(ap_ssid, ap_password);
+  WiFi.softAP(ap_ssid, ap_password);
+  IPAddress ip = WiFi.softAPIP();
   server.begin();
   Serial.print("AP IP address: ");  
-  Serial.println(WiFi.softAPIP());
+  Serial.println(ip);
+
   //Start WebSocket server and assign callback
+  Serial.println("Starting websocket");
   webSocket.begin(); 
+
+  Serial.println("Starting websocket");
   webSocket.onEvent(onWebSocketEvent);
 
   //Relay setup
-  relay.init(RELAY_1,RELAY_2,RELAY_3,RELAY_4);
+  Serial.println("initializeing relay");
+  relay.init();
   relay.print();
+
+  Serial.println("Initialization Complete");
 }
 
 void loop() {
@@ -99,6 +110,7 @@ void onWebSocketEvent(uint8_t client_num,
                       WStype_t type,
                       uint8_t * payload,
                       size_t length) {
+  Serial.println("Websocket event triggered");
   String output;
   String temp;
   // Figure out the type of WebSocket event
