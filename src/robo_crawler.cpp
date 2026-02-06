@@ -11,11 +11,31 @@
 //PINS
 
 //Arduino Pin Definitions
-#define RELAY_1 16
-#define RELAY_2 17
-#define RELAY_3 18
-#define RELAY_4 19
 
+//SERVO Pins
+#define RELAY_1 22  //Servo 1 IN1
+#define RELAY_2 23  //Servo 1 IN2
+#define RELAY_3 26  //Servo 2 IN1
+#define RELAY_4 27  //Servo 2 IN2
+
+//MOTOR Pins
+#define MOTOR1_IN1 12
+#define MOTOR1_IN2 13
+
+#define MOTOR2_IN1 14
+#define MOTOR2_IN2 15
+
+#define MOTOR3_IN1 16
+#define MOTOR3_IN2 17
+
+#define MOTOR4_IN1 18
+#define MOTOR4_IN2 19
+
+//MISC Pins
+#define LED_PIN 2
+#define FAN_PIN 4
+
+//Legacy
 #define PWMDRIVE 21
 
 #define SPEED_PIN_LEFT    26
