@@ -65,6 +65,14 @@ void sendPulse(int pulseWidthMicros);
 
 void setup() 
 {
+  pinMode(MOTOR1_IN1, OUTPUT);
+  pinMode(MOTOR1_IN2, OUTPUT);
+  pinMode(MOTOR2_IN1, OUTPUT);
+  pinMode(MOTOR2_IN2, OUTPUT);
+  pinMode(MOTOR3_IN1, OUTPUT);
+  pinMode(MOTOR3_IN2, OUTPUT);
+  pinMode(MOTOR4_IN1, OUTPUT);
+  pinMode(MOTOR4_IN2, OUTPUT);
 
   // the string in the input  will be duplicated in the JsonDocument.
   //  char temp_data[300]; 
@@ -175,6 +183,23 @@ void onWebSocketEvent(uint8_t client_num,
 
       relay.update();
 
+      //Update drive
+
+      float motorDrive = doc_recv["A"].as<int>();
+      if (motorDrive < 50) { //reverse
+        analogWrite(MOTOR1_IN2, map(motorDrive, 0, 49, 0, 255));
+        analogWrite(MOTOR2_IN2, map(motorDrive, 0, 49, 0, 255));
+        analogWrite(MOTOR3_IN2, map(motorDrive, 0, 49, 0, 255));
+        analogWrite(MOTOR4_IN2, map(motorDrive, 0, 49, 0, 255));
+      }else { //forward
+        analogWrite(MOTOR1_IN1, map(motorDrive, 50, 100, 0, 255));
+        analogWrite(MOTOR2_IN1, map(motorDrive, 50, 100, 0, 255));
+        analogWrite(MOTOR3_IN1, map(motorDrive, 50, 100, 0, 255));
+        analogWrite(MOTOR4_IN1, map(motorDrive, 50, 100, 0, 255));
+      }
+
+      //Legacy
+      /*
       //Drive limiter
       float driveLim = 0.01 * map(doc_recv["A"].as<int>(),0,100,50,100);
 
@@ -189,6 +214,7 @@ void onWebSocketEvent(uint8_t client_num,
       //int driveSpeed = map(doc_recv["K"].as<int>(),-100,100,0,255);
       Serial.println(driveSpeed);
       analogWrite(PWMDRIVE, driveSpeed);
+      */
 
 
       //Sends information back to the controller
