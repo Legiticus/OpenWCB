@@ -1,11 +1,14 @@
 
-#include <WiFi.h>
-#include <WebSocketsServer.h>
-#include <ArduinoJson.h>
 
-#include "RelaySwitch.h"
+
+
+#include <WiFi.h> //Provides the functionality to set the Esp32 up as a wifi Access Point
+#include <WebSocketsServer.h> //Enables persistent real time communication via a WebSocket Connection
+#include <ArduinoJson.h> //Handles the encoding and decoding of JSON data to and from the websocket connection
 
 #define DEVICE_NAME "Robo_Crawler_v1.1"
+
+
 
 
 //PINS
@@ -13,10 +16,10 @@
 //Arduino Pin Definitions
 
 //SERVO Pins
-#define RELAY_1 22  //Servo 1 IN1
-#define RELAY_2 23  //Servo 1 IN2
-#define RELAY_3 26  //Servo 2 IN1
-#define RELAY_4 27  //Servo 2 IN2
+#define MOTOR5_IN1 22  //Servo 1 IN1
+#define MOTOR5_IN2 23  //Servo 1 IN2
+#define MOTOR6_IN1 26  //Servo 2 IN1
+#define MOTOR6_IN2 27  //Servo 2 IN2
 
 //MOTOR Pins
 #define MOTOR1_IN1 12
@@ -31,16 +34,8 @@
 #define MOTOR4_IN1 18
 #define MOTOR4_IN2 19
 
-//MISC Pins
-#define LED_PIN 2
-#define FAN_PIN 4
+int driveMotorPairs[4] = {MOTOR1_IN1, MOTOR2_IN1, MOTOR3_IN1, MOTOR4_IN1};
 
-//Legacy
-#define PWMDRIVE 21
-
-#define SPEED_PIN_LEFT    26
-#define SPEED_PIN_RIGHT    25
-  
 // WiFi credentials for AP mode
 const char* ap_ssid = DEVICE_NAME;
 const char* ap_password = "password";
@@ -54,25 +49,18 @@ JsonDocument doc_send;
 JsonDocument doc_recv;
 String temp_send;
 
-RelaySwitch relay(RELAY_1,RELAY_2,RELAY_3,RELAY_4);
-
+//WebSocket event funciton definition
 void onWebSocketEvent(uint8_t client_num,
                       WStype_t type,
                       uint8_t * payload,
                       size_t length);
-void sendPulse(int pulseWidthMicros);
 
+
+
+void sendPulse(int pulseWidthMicros);
 
 void setup() 
 {
-  pinMode(MOTOR1_IN1, OUTPUT);
-  pinMode(MOTOR1_IN2, OUTPUT);
-  pinMode(MOTOR2_IN1, OUTPUT);
-  pinMode(MOTOR2_IN2, OUTPUT);
-  pinMode(MOTOR3_IN1, OUTPUT);
-  pinMode(MOTOR3_IN2, OUTPUT);
-  pinMode(MOTOR4_IN1, OUTPUT);
-  pinMode(MOTOR4_IN2, OUTPUT);
 
   // the string in the input  will be duplicated in the JsonDocument.
   //  char temp_data[300]; 
@@ -83,6 +71,8 @@ void setup()
   //relay_init();//initialize the relay
 
   Serial.begin(115200);
+
+  //Start WiFi broadcast
   Serial.println("Starting WiFi in AP mode...");  
   WiFi.softAP(ap_ssid, ap_password);
   IPAddress ip = WiFi.softAPIP();
@@ -90,17 +80,20 @@ void setup()
   Serial.print("AP IP address: ");  
   Serial.println(ip);
 
-  //Start WebSocket server and assign callback
+  //Start WebSocket server
   Serial.println("Starting websocket");
   webSocket.begin(); 
 
+  //Assign callback Function
   Serial.println("Starting websocket");
   webSocket.onEvent(onWebSocketEvent);
 
-  //Relay setup
-  Serial.println("initializeing relay");
-  relay.init();
-  relay.print();
+  //set drive motors to output
+  Serial.println("Initializing motor pairs");
+  for (int motorPin : driveMotorPairs) {
+    pinMode(motorPin, OUTPUT);
+    pinMode(motorPin + 1, OUTPUT);
+  }
 
   Serial.println("Initialization Complete");
 }
@@ -117,11 +110,6 @@ void loop() {
 
     //Sends a basic HTTP response to the client
     client.println("HTTP/1.1 200 OK");
-    //client.println("Content-Type: application/json");
-    //client.println("Connection: close");
-    //client.println();
-    //client.println("{\"NAME\":\"Test\", \"Type\":\"Test\", \"Check\":\"SunFounder Controller\"}");
-    //delay(1);
     client.stop();
   }
   
@@ -146,15 +134,15 @@ void onWebSocketEvent(uint8_t client_num,
 
     // Client has disconnected
     case WStype_DISCONNECTED:
-      analogWrite(PWMDRIVE, 0);
+      for (int motorPin : driveMotorPairs) {
+        analogWrite(motorPin, 0);
+        analogWrite(motorPin + 1, 0);
+      }
       break;
 
     // New client has connected
     case WStype_CONNECTED:
       {
-        //IPAddress ip = webSocket.remoteIP(client_num);
-        //Serial.println("[%u] Connection from ");
-        //Serial.println(ip.toString());
         Serial.println("Client Connected");
         Serial.println(temp_send);
         webSocket.sendTXT(client_num, temp_send);
@@ -165,41 +153,37 @@ void onWebSocketEvent(uint8_t client_num,
     {
       deserializeJson(doc_recv, payload);
 
-      //-------------------Robot Control-------------------//
+      //-------------------Directional Control-------------------//
 
-      //Directional control for seperated drive
-      relay.setRelay(!doc_recv["S"], !doc_recv["T"], !doc_recv["I"], !doc_recv["J"]);
+      if (doc_recv["Q"] || ) {
 
-      //Directional control for joined drive
-      if (doc_recv["Q"]) {
-        relay.setRelay(1, RELAY_ON);
-        relay.setRelay(3, RELAY_ON);
+        digitalWrite(MOTOR5_IN1, HIGH);
+        digitalWrite(MOTOR5_IN2, LOW);
+
+        digitalWrite(MOTOR6_IN1, LOW);
+        digitalWrite(MOTOR6_IN2, HIGH);
+
+      }else if (doc_recv["R"]) {
+
+        digitalWrite(MOTOR5_IN1, LOW);
+        digitalWrite(MOTOR5_IN2, HIGH);
+
+        digitalWrite(MOTOR6_IN1, HIGH);
+        digitalWrite(MOTOR6_IN2, LOW);
+
+      }else {
+
+        digitalWrite(MOTOR5_IN1, doc_recv["I"]);
+        digitalWrite(MOTOR5_IN2, doc_recv["J"]);
+
+        digitalWrite(MOTOR6_IN1, doc_recv["S"]);
+        digitalWrite(MOTOR6_IN2, doc_recv["T"]);
+
       }
+
+
       
-      if (doc_recv["R"]) {
-        relay.setRelay(2, RELAY_ON);
-        relay.setRelay(4, RELAY_ON);
-      }
 
-      relay.update();
-
-      //Update drive
-
-      float motorDrive = doc_recv["A"].as<int>();
-      if (motorDrive < 50) { //reverse
-        analogWrite(MOTOR1_IN2, map(motorDrive, 0, 49, 0, 255));
-        analogWrite(MOTOR2_IN2, map(motorDrive, 0, 49, 0, 255));
-        analogWrite(MOTOR3_IN2, map(motorDrive, 0, 49, 0, 255));
-        analogWrite(MOTOR4_IN2, map(motorDrive, 0, 49, 0, 255));
-      }else { //forward
-        analogWrite(MOTOR1_IN1, map(motorDrive, 50, 100, 0, 255));
-        analogWrite(MOTOR2_IN1, map(motorDrive, 50, 100, 0, 255));
-        analogWrite(MOTOR3_IN1, map(motorDrive, 50, 100, 0, 255));
-        analogWrite(MOTOR4_IN1, map(motorDrive, 50, 100, 0, 255));
-      }
-
-      //Legacy
-      /*
       //Drive limiter
       float driveLim = 0.01 * map(doc_recv["A"].as<int>(),0,100,50,100);
 
@@ -207,15 +191,22 @@ void onWebSocketEvent(uint8_t client_num,
       float driveInput = doc_recv["K"].as<int>();
 
       //the function here is specially tuned to provide the desired output
-      //base function: 191 + 128/pi * arctan(x)
-      float driveSpeed = 191 + 45*atan(driveInput/15) * driveLim;
+      //base function: 50 + 100/pi * arctan(x)
+      //This function is tuned so that f(100) and f(-100) equal 100 and 0 respectfully
+      //float driveSpeed = 50 + 35.164*atan(driveInput/15) * driveLim;
 
-      //lagacy linear output. functioned poorly around zero
-      //int driveSpeed = map(doc_recv["K"].as<int>(),-100,100,0,255);
+      //Linear curve
+      float driveSpeed = 2.55 * driveInput * driveLim;
+      float driveMag = abs(driveSpeed);
+      bool direction = (driveSpeed >= 0); //1 is forward, 0 is backwards
+
+      for (int motorPin : driveMotorPairs) {
+        analogWrite(motorPin, driveMag * direction);
+        analogWrite(motorPin + 1, driveMag * !direction);
+      }
+
+      Serial.print("Current driveSpeed: ");
       Serial.println(driveSpeed);
-      analogWrite(PWMDRIVE, driveSpeed);
-      */
-
 
       //Sends information back to the controller
       serializeJson(doc_recv, temp);
@@ -238,22 +229,6 @@ void onWebSocketEvent(uint8_t client_num,
     
   }
 }
-
-//---------------------------------------RELAY---------------------------------------//
-
-//initialize the relay
-
-
-//---------------------------------------PWM Drive---------------------------------------//
-// Manually generate RC PWM signal
-void sendPulse(int pulseWidthMicros) {
-    digitalWrite(PWMDRIVE, HIGH);
-    delayMicroseconds(pulseWidthMicros);
-    digitalWrite(PWMDRIVE, LOW);
-    delayMicroseconds(20000 - pulseWidthMicros);
-}
-
-
 
 
 
