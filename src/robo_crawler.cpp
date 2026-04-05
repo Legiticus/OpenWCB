@@ -23,7 +23,7 @@
 #define MOTOR1_IN2 13
 
 #define MOTOR2_IN1 14
-#define MOTOR2_IN2 15
+#define MOTOR2_IN2 25
 
 #define MOTOR3_IN1 16
 #define MOTOR3_IN2 17
@@ -59,13 +59,13 @@ void sendPulse(int pulseWidthMicros);
 void setup() 
 {
 
+
+
   // the string in the input  will be duplicated in the JsonDocument.
   //  char temp_data[300]; 
   String stringone = "{\"Name\":\"";
   String stringtwo = "\", \"Type\":\"Test\", \"Check\":\"SunFounder Controller\"}";
   temp_send = stringone + DEVICE_NAME + stringtwo;
-
-  //relay_init();//initialize the relay
 
   Serial.begin(115200);
 
@@ -85,12 +85,16 @@ void setup()
   Serial.println("Starting websocket");
   webSocket.onEvent(onWebSocketEvent);
 
+
+  analogWriteFrequency(15000);
+
   //set drive motors to output
   Serial.println("Initializing motor pairs");
   for (int motorPin : driveMotorPairs) {
     pinMode(motorPin, OUTPUT);
     pinMode(motorPin + 1, OUTPUT);
   }
+  pinMode(MOTOR2_IN2, OUTPUT);
 
   pinMode(MOTOR5_IN1, OUTPUT);
   pinMode(MOTOR5_IN2, OUTPUT);
@@ -140,6 +144,7 @@ void onWebSocketEvent(uint8_t client_num,
         analogWrite(motorPin, 0);
         analogWrite(motorPin + 1, 0);
       }
+      digitalWrite(MOTOR2_IN2, LOW);
 
       digitalWrite(MOTOR5_IN1, LOW);
       digitalWrite(MOTOR5_IN2, LOW);
@@ -205,7 +210,10 @@ void onWebSocketEvent(uint8_t client_num,
       //float driveSpeed = 50 + 35.164*atan(driveInput/15) * driveLim;
 
       //Linear curve
-      float driveSpeed = 2.55 * driveInput * driveLim;
+      //float driveSpeed = 2.55 * driveInput * driveLim;
+
+      float driveSpeed = 179.34*atan(driveInput/15) * driveLim;
+
       float driveMag = abs(driveSpeed);
       bool direction = (driveSpeed >= 0); //1 is forward, 0 is backwards
 
@@ -213,6 +221,7 @@ void onWebSocketEvent(uint8_t client_num,
         analogWrite(motorPin, driveMag * direction);
         analogWrite(motorPin + 1, driveMag * !direction);
       }
+      analogWrite(MOTOR2_IN2, driveMag * !direction);
 
       Serial.print("Current driveSpeed: ");
       Serial.println(driveSpeed);
