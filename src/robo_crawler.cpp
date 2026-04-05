@@ -12,9 +12,6 @@
 
 
 //PINS
-
-//Arduino Pin Definitions
-
 //SERVO Pins
 #define MOTOR5_IN1 22  //Servo 1 IN1
 #define MOTOR5_IN2 23  //Servo 1 IN2
@@ -95,6 +92,11 @@ void setup()
     pinMode(motorPin + 1, OUTPUT);
   }
 
+  pinMode(MOTOR5_IN1, OUTPUT);
+  pinMode(MOTOR5_IN2, OUTPUT);
+  pinMode(MOTOR6_IN1, OUTPUT);
+  pinMode(MOTOR6_IN2, OUTPUT);
+
   Serial.println("Initialization Complete");
 }
 
@@ -138,6 +140,13 @@ void onWebSocketEvent(uint8_t client_num,
         analogWrite(motorPin, 0);
         analogWrite(motorPin + 1, 0);
       }
+
+      digitalWrite(MOTOR5_IN1, LOW);
+      digitalWrite(MOTOR5_IN2, LOW);
+
+      digitalWrite(MOTOR6_IN1, LOW);
+      digitalWrite(MOTOR6_IN2, LOW);
+
       break;
 
     // New client has connected
@@ -155,7 +164,7 @@ void onWebSocketEvent(uint8_t client_num,
 
       //-------------------Directional Control-------------------//
 
-      if (doc_recv["Q"] || ) {
+      if (doc_recv["Q"]) {
 
         digitalWrite(MOTOR5_IN1, HIGH);
         digitalWrite(MOTOR5_IN2, LOW);
