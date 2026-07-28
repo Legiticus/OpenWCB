@@ -13,25 +13,14 @@
 
 //PINS
 //SERVO Pins
-#define MOTOR5_IN1 22  //Servo 1 IN1
-#define MOTOR5_IN2 23  //Servo 1 IN2
-#define MOTOR6_IN1 26  //Servo 2 IN1
-#define MOTOR6_IN2 27  //Servo 2 IN2
+#define MOTOR1_IN1 32  //Servo 1 IN1
+#define MOTOR1_IN2 33  //Servo 1 IN2
+#define MOTOR2_IN1 26  //Servo 2 IN1
+#define MOTOR2_IN2 27  //Servo 2 IN2
 
-//MOTOR Pins
-#define MOTOR1_IN1 12
-#define MOTOR1_IN2 13
-
-#define MOTOR2_IN1 14
-#define MOTOR2_IN2 25
-
-#define MOTOR3_IN1 16
-#define MOTOR3_IN2 17
-
-#define MOTOR4_IN1 18
-#define MOTOR4_IN2 19
-
-int driveMotorPairs[4] = {MOTOR1_IN1, MOTOR2_IN1, MOTOR3_IN1, MOTOR4_IN1};
+#define DRIVE_EN 23
+#define DRIVE_CH1 18
+#define DRIVE_CH2 19
 
 // WiFi credentials for AP mode
 const char* ap_ssid = DEVICE_NAME;
@@ -58,8 +47,6 @@ void sendPulse(int pulseWidthMicros);
 
 void setup() 
 {
-
-
 
   // the string in the input  will be duplicated in the JsonDocument.
   //  char temp_data[300]; 
@@ -90,16 +77,17 @@ void setup()
 
   //set drive motors to output
   Serial.println("Initializing motor pairs");
-  for (int motorPin : driveMotorPairs) {
-    pinMode(motorPin, OUTPUT);
-    pinMode(motorPin + 1, OUTPUT);
-  }
+
+  pinMode(DRIVE_CH1, OUTPUT);
+  pinMode(DRIVE_CH1, OUTPUT);
+  pinMode(DRIVE_EN, OUTPUT);
+
+  pinMode(MOTOR1_IN1, OUTPUT);
+  pinMode(MOTOR1_IN2, OUTPUT);
+  pinMode(MOTOR2_IN1, OUTPUT);
   pinMode(MOTOR2_IN2, OUTPUT);
 
-  pinMode(MOTOR5_IN1, OUTPUT);
-  pinMode(MOTOR5_IN2, OUTPUT);
-  pinMode(MOTOR6_IN1, OUTPUT);
-  pinMode(MOTOR6_IN2, OUTPUT);
+  digitalWrite(DRIVE_EN, LOW);
 
   Serial.println("Initialization Complete");
 }
@@ -140,17 +128,14 @@ void onWebSocketEvent(uint8_t client_num,
 
     // Client has disconnected
     case WStype_DISCONNECTED:
-      for (int motorPin : driveMotorPairs) {
-        analogWrite(motorPin, 0);
-        analogWrite(motorPin + 1, 0);
-      }
+
+      digitalWrite(DRIVE_EN, LOW);
+
+      // Servos
+      digitalWrite(MOTOR1_IN1, LOW);
+      digitalWrite(MOTOR1_IN2, LOW);
+      digitalWrite(MOTOR2_IN1, LOW);
       digitalWrite(MOTOR2_IN2, LOW);
-
-      digitalWrite(MOTOR5_IN1, LOW);
-      digitalWrite(MOTOR5_IN2, LOW);
-
-      digitalWrite(MOTOR6_IN1, LOW);
-      digitalWrite(MOTOR6_IN2, LOW);
 
       break;
 
@@ -171,32 +156,32 @@ void onWebSocketEvent(uint8_t client_num,
 
       if (doc_recv["Q"]) {
 
-        digitalWrite(MOTOR5_IN1, HIGH);
-        digitalWrite(MOTOR5_IN2, LOW);
+        digitalWrite(MOTOR1_IN1, HIGH);
+        digitalWrite(MOTOR1_IN2, LOW);
 
-        digitalWrite(MOTOR6_IN1, LOW);
-        digitalWrite(MOTOR6_IN2, HIGH);
+        digitalWrite(MOTOR2_IN1, LOW);
+        digitalWrite(MOTOR2_IN2, HIGH);
 
       }else if (doc_recv["R"]) {
 
-        digitalWrite(MOTOR5_IN1, LOW);
-        digitalWrite(MOTOR5_IN2, HIGH);
+        digitalWrite(MOTOR1_IN1, LOW);
+        digitalWrite(MOTOR1_IN2, HIGH);
 
-        digitalWrite(MOTOR6_IN1, HIGH);
-        digitalWrite(MOTOR6_IN2, LOW);
+        digitalWrite(MOTOR2_IN1, HIGH);
+        digitalWrite(MOTOR2_IN2, LOW);
 
       }else {
 
-        digitalWrite(MOTOR5_IN1, doc_recv["I"]);
-        digitalWrite(MOTOR5_IN2, doc_recv["J"]);
+        digitalWrite(MOTOR1_IN1, doc_recv["I"]);
+        digitalWrite(MOTOR1_IN2, doc_recv["J"]);
 
-        digitalWrite(MOTOR6_IN1, doc_recv["S"]);
-        digitalWrite(MOTOR6_IN2, doc_recv["T"]);
+        digitalWrite(MOTOR2_IN1, doc_recv["S"]);
+        digitalWrite(MOTOR2_IN2, doc_recv["T"]);
 
       }
 
-
-      
+      // Enable driver
+      digitalWrite(DRIVE_EN, HIGH);
 
       //Drive limiter
       float driveLim = 0.01 * map(doc_recv["A"].as<int>(),0,100,50,100);
@@ -216,12 +201,9 @@ void onWebSocketEvent(uint8_t client_num,
 
       float driveMag = abs(driveSpeed);
       bool direction = (driveSpeed >= 0); //1 is forward, 0 is backwards
-
-      for (int motorPin : driveMotorPairs) {
-        analogWrite(motorPin, driveMag * direction);
-        analogWrite(motorPin + 1, driveMag * !direction);
-      }
-      analogWrite(MOTOR2_IN2, driveMag * !direction);
+      
+      analogWrite(DRIVE_CH1, driveMag * direction);
+      analogWrite(DRIVE_CH2, driveMag * !direction);
 
       Serial.print("Current driveSpeed: ");
       Serial.println(driveSpeed);
