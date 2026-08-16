@@ -197,7 +197,10 @@ void onWebSocketEvent(uint8_t client_num,
       //Linear curve
       //float driveSpeed = 2.55 * driveInput * driveLim;
 
-      float driveSpeed = 179.34*atan(driveInput/15) * driveLim;
+      // Old function 179.34*atan(driveInput/15)
+      // New function 50 * tan(0.01377 * driveInput)
+
+      float driveSpeed = 50 * tan(0.01377 * driveInput) * driveLim;
 
       float driveMag = abs(driveSpeed);
       bool direction = (driveSpeed >= 0); //1 is forward, 0 is backwards
