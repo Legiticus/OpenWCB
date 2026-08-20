@@ -130,6 +130,8 @@ void onWebSocketEvent(uint8_t client_num,
     case WStype_DISCONNECTED:
 
       digitalWrite(DRIVE_EN, LOW);
+      digitalWrite(MOTOR1_IN2, LOW);
+      digitalWrite(MOTOR2_IN1, LOW);
 
       // Servos
       digitalWrite(MOTOR1_IN1, LOW);
@@ -198,9 +200,10 @@ void onWebSocketEvent(uint8_t client_num,
       //float driveSpeed = 2.55 * driveInput * driveLim;
 
       // Old function 179.34*atan(driveInput/15)
-      // New function 50 * tan(0.01377 * driveInput)
 
-      float driveSpeed = 50 * tan(0.01377 * driveInput) * driveLim;
+      // Other old function: 50 * tan(0.01377 * driveInput) * driveLim;
+
+      float driveSpeed = 2.55 * driveInput * driveLim;
 
       float driveMag = abs(driveSpeed);
       bool direction = (driveSpeed >= 0); //1 is forward, 0 is backwards
